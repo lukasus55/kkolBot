@@ -26,7 +26,7 @@ function formatPollDate(date: Date): string {
 export function startEventChecker(client: Client) {
     checkApiForEvents(client);
 
-    const checkCooldown = 10000 // 3600000 = 1hour
+    const checkCooldown = 3600000 // 3600000 = 1hour
 
     setInterval(() => checkApiForEvents(client), checkCooldown); 
 }
@@ -48,7 +48,7 @@ async function checkApiForEvents(client: Client) {
         const eventDate = new Date(event.event_date);
         const now = new Date();
         const xDaysFromNow = new Date();
-        xDaysFromNow.setDate(now.getDate() + 15);
+        xDaysFromNow.setDate(now.getDate() + 6);
 
         if (eventDate <= xDaysFromNow && eventDate > now) {
             const channel = await client.channels.fetch(config.DISCORD_TARGET_CHANNEL_ID);
