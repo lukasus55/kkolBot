@@ -43,7 +43,7 @@ export async function execute(interaction: CommandInteraction) {
 
         const embed = new EmbedBuilder()
             .setColor(event.is_major ? 0xFFD700 : "#72B01D") 
-            .setTitle(`📌  ${event.name}`)
+            .setTitle(`📅  ${event.name}`)
             .setAuthor({ name: tournamentName, url: tournamentUrl })
             .addFields(
                 { 

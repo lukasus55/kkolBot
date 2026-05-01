@@ -2,6 +2,7 @@ import { Client, Events } from "discord.js";
 import { config } from "./config";
 import { commands } from "./commands";
 import { deployCommands } from "./deploy-commands";
+import { startEventChecker } from "./event-checker";
 
 const client = new Client({
     intents: ["Guilds", "GuildMessages", "DirectMessages"],
@@ -9,6 +10,8 @@ const client = new Client({
 
 client.once(Events.ClientReady, async (readyClient) => {
     console.log(`Discord bot is ready! Logged in as ${readyClient.user.tag}`);
+
+    startEventChecker(readyClient);
 
     const connectedGuilds = readyClient.guilds.cache.map(guild => guild.id);
 
