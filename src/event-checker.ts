@@ -1,4 +1,4 @@
-import { Client, TextChannel } from "discord.js";
+import { Client, NewsChannel, TextChannel } from "discord.js";
 import { config } from "./config";
 import { loadData } from "./helpers";
 
@@ -53,7 +53,7 @@ async function checkApiForEvents(client: Client) {
         if (eventDate <= xDaysFromNow && eventDate > now) {
             const channel = await client.channels.fetch(config.DISCORD_TARGET_CHANNEL_ID);
             
-            if (!channel || !(channel instanceof TextChannel)) {
+            if (!channel || !((channel instanceof TextChannel) || (channel instanceof NewsChannel))) {
                 console.error("Target channel not found or is not a text channel.");
                 return;
             }
