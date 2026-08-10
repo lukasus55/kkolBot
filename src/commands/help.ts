@@ -10,13 +10,17 @@ export async function execute(interaction: CommandInteraction) {
         .setColor("#72B01D")
         .setTitle("Dostępne komendy")
         .addFields(
-            { 
-                name: "/upcoming", 
-                value: "Wyświetla informację o następnym wydarzeniu." 
+            {
+                name: "/upcoming",
+                value: "Wyświetla informację o następnym wydarzeniu."
             },
-            { 
-                name: "/help", 
-                value: "Wyświetla tę wiadomość." 
+            {
+                name: "/help",
+                value: "Wyświetla tę wiadomość."
+            },
+            {
+                name: "/forcevote",
+                value: "[ADMIN ONLY] Wymusza stworzenie ankiety dla nadchodzącego wydarzenia"
             }
         )
 
