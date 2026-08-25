@@ -20,7 +20,7 @@ export const funFacts: FunFact[] = [
 - **Kukuła** - 95 dni
 - **Harnoldihno** - 133 dni
 - **DamiDami2** - nigdy`,
-        dataDate: "25.08.2026"
+        dataDate: "27.08.2026"
     },
     {
         date: "03.09.2026",
@@ -118,7 +118,7 @@ async function sendFunFactForToday(client: Client) {
             return;
         }
 
-        const channel = await client.channels.fetch(config.DISCORD_TARGET_CHANNEL_ID);
+        const channel = await client.channels.fetch(config.DISCORD_TARGET_FUN_FACTS_CHANNEL_ID);
         if (!channel || !((channel instanceof TextChannel) || (channel instanceof NewsChannel))) {
             console.error("Fun facts: Target channel not found or is not a text channel.");
             return;
