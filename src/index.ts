@@ -1,4 +1,4 @@
-import { Client, Events } from "discord.js";
+import { Client, Events, ActivityType } from "discord.js";
 import { config } from "./config";
 import { commands } from "./commands";
 import { deployCommands } from "./deploy-commands";
@@ -10,6 +10,11 @@ const client = new Client({
 
 client.once(Events.ClientReady, async (readyClient) => {
     console.log(`Discord bot is ready! Logged in as ${readyClient.user.tag}`);
+
+    readyClient.user.setActivity({
+        name: "Więcej na: kkol.pl",
+        type: ActivityType.Custom,
+    });
 
     startEventChecker(readyClient);
 
