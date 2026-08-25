@@ -3,6 +3,7 @@ import { config } from "./config";
 import { commands } from "./commands";
 import { deployCommands } from "./deploy-commands";
 import { startEventChecker } from "./event-checker";
+import { startFunFactsSystem } from "./fun-facts";
 
 const client = new Client({
     intents: ["Guilds", "GuildMessages", "DirectMessages"],
@@ -17,6 +18,7 @@ client.once(Events.ClientReady, async (readyClient) => {
     });
 
     startEventChecker(readyClient);
+    startFunFactsSystem(readyClient);
 
     const connectedGuilds = readyClient.guilds.cache.map(guild => guild.id);
 
