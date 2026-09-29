@@ -37,8 +37,13 @@ client.on(Events.InteractionCreate, async (interaction) => {
         return;
     }
     const { commandName } = interaction;
-    if (commands[commandName as keyof typeof commands]) {
-        commands[commandName as keyof typeof commands].execute(interaction);
+    const command = commands[commandName as keyof typeof commands];
+    if (command) {
+        try {
+            await command.execute(interaction);
+        } catch (error) {
+            console.error(`❌ Unhandled error executing command ${commandName}:`, error);
+        }
     }
 });
 

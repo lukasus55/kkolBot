@@ -2,135 +2,120 @@ import { Client, TextChannel, NewsChannel } from "discord.js";
 import cron from "node-cron";
 import { config } from "./config";
 
-export interface FunFact {
-    date: string; // Format: "DD.MM.YYYY"
+export interface TriviaItem {
+    id: number;
     content: string;
-    dataDate?: string; // Optional: The date the data was collected (e.g. "27.08.2026")
+    is_used: boolean;
+    used_at?: string | null;
+    created_at: string;
+    created_by?: string | null;
 }
-
-// FORMATTING INSTRUCTIONS:
-// 1. You can add new fun facts here. The bot checks this list based on the date.
-// 2. The date must be exactly in "DD.MM.YYYY" format.
-// 3. For multiline text, wrap your content in backticks (`).
-export const funFacts: FunFact[] = [
-    {
-        date: "27.08.2026",
-        content: `Dni od samodzielnego wygrania głównej konkurencji (za wyłączeniem ex aequo):
-- **Kostyś** - 64 dni
-- **Kukuła** - 95 dni
-- **Harnoldihno** - 133 dni
-- **DamiDami2** - nigdy`,
-        dataDate: "27.08.2026"
-    },
-    {
-        date: "03.09.2026",
-        content: `Ilość zdobytych punktów na przestrzeni wszystkich sezonów
-- **Kostyś** - 39 pkt
-- **Harnoldihno** - 34 pkt
-- **Kukuła** - 32 pkt
-- **DamiDami2** - 30 pkt`,
-        dataDate: "25.08.2026"
-    },
-    {
-        date: "10.09.2026",
-        content: `Ilość miejsc ex aequo w całej historii:
-- **Harnoldihno** - 5
-- **Kostyś** - 4
-- **DamiDami2** - 3
-- **Kukuła** - 3`,
-        dataDate: "25.08.2026"
-    },
-    {
-        date: "17.09.2026",
-        content: `Gdyby nie podwójne punkty za ostatnią konkurencje klasyfikacja końcowa w 2024 wyglądałaby następująco:
-- **1) Harnoldihno** - 14 pkt
-- **2) Kostyś** - 12 pkt
-- **2) Kukuła** - 12 pkt
-- **4) DamiDami2** - 10 pkt`,
-        dataDate: "25.08.2026"
-    },
-    {
-        date: "24.09.2026",
-        content: `Ilość zdobytych punktów na przestrzeni wszystkich sezonów gdyby odbywały się tylko gry wideo
-- **Kostyś** - 24 pkt
-- **Harnoldihno** - 21 pkt
-- **DamiDami2** - 16 pkt
-- **Kukuła** - 15 pkt`, //(kinect, codenames, brain show, geometry dash, golf with your friends, pummel party)
-        dataDate: "25.08.2026"
-    }
-];
-
-// Pomysły:
-// Dni od samodzielnego przegrania (4 miejsce) głównej konkurencji (za wyłączeniem ex aequo)
-// Dodać ciekawostke o najdłuższych przerwach miedzy konkurencja (za wylaczeniem przerwy miedzysezonowej)
-// Dodać ciekawostke o ilości głosów jakie otrzymał CS na przestrzein 3 głosowań na gry
-// Ilość zdobytych punktów na przestrzeni wszystkich sezonów gdyby odbywały się tylko gry planszowe / z kategorii inne
 
 export function startFunFactsSystem(client: Client) {
     // Schedule for every Thursday at 19:00
     // cron format: "minute hour day-of-month month day-of-week"
     // "0 19 * * 4" -> 19:00 every Thursday
     cron.schedule("0 19 * * 4", () => {
-        sendFunFactForToday(client);
+        console.log("⏰ [FunFacts] Uruchamianie zaplanowanego zadania publikacji ciekawostki (Czwartek 19:00)...");
+        sendNextFunFact(client);
     }, {
         timezone: "Europe/Warsaw"
     });
 
-    // --- REMOVE THE CODE BELOW BEFORE PUSHING TO PROD ---
-    // Test logic to send all 6 facts on startup
-    // console.log("TESTING FUN FACTS SYSTEM (remove before prod): Sending all facts...");
-    // sendAllFactsForTesting(client);
-    // --- REMOVE THE CODE ABOVE BEFORE PUSHING TO PROD ---
+    console.log("✅ [FunFacts] System ciekawostek zainicjalizowany (harmonogram: każdy czwartek o 19:00).");
 }
 
-async function sendAllFactsForTesting(client: Client) {
+export async function sendNextFunFact(client: Client): Promise<{ success: boolean; message: string; triviaId?: number }> {
     try {
+        if (!config.WEB_API_KEY) {
+            const msg = "Brak skonfigurowanego klucza WEB_API_KEY w zmiennych środowiskowych.";
+            console.error(`❌ [FunFacts] ${msg}`);
+            return { success: false, message: msg };
+        }
+
+        // 1. Pobierz najstarszą nieużytą ciekawostkę z kolejki FIFO
+        const fetchUrl = `${config.WEB_API_URL}/api/admin/trivia?next=true`;
+        const res = await fetch(fetchUrl, {
+            method: "GET",
+            headers: {
+                "x-trivia-api-key": config.WEB_API_KEY,
+                "x-web-api-key": config.WEB_API_KEY,
+                "Authorization": `Bearer ${config.WEB_API_KEY}`,
+                "Accept": "application/json"
+            }
+        });
+
+        if (!res.ok) {
+            const errText = await res.text().catch(() => "");
+            const msg = `Błąd API KKOL podczas pobierania ciekawostki [${res.status}]: ${errText}`;
+            console.error(`❌ [FunFacts] ${msg}`);
+            return { success: false, message: msg };
+        }
+
+        const data = (await res.json()) as { trivia: TriviaItem | null; message?: string };
+        const trivia = data?.trivia;
+
+        if (!trivia) {
+            const msg = "Kolejka ciekawostek w panelu administratora jest pusta. Pomijam wysyłkę.";
+            console.log(`ℹ️ [FunFacts] ${msg}`);
+            return { success: false, message: msg };
+        }
+
+        // 2. Pobierz kanał docelowy Discord
         const channel = await client.channels.fetch(config.DISCORD_TARGET_FUN_FACTS_CHANNEL_ID);
         if (!channel || !((channel instanceof TextChannel) || (channel instanceof NewsChannel))) {
-            console.error("Fun facts: Target channel not found or is not a text channel.");
-            return;
+            const msg = "Kanał docelowy dla ciekawostek nie został znaleziony lub nie jest kanałem tekstowym.";
+            console.error(`❌ [FunFacts] ${msg}`);
+            return { success: false, message: msg };
         }
 
-        for (const fact of funFacts) {
-            const footer = fact.dataDate ? `\n\n*[Dane na ${fact.dataDate}]*` : "";
-            await channel.send({
-                content: `**Ciekawostka ${fact.date}**\n${fact.content}${footer}`
-            });
-        }
-    } catch (error) {
-        console.error("Error during test fun facts sending:", error);
-    }
-}
-
-async function sendFunFactForToday(client: Client) {
-    try {
+        // 3. Formatuj i wyślij na Discord
         const today = new Date();
-        // Format to DD.MM.YYYY
         const dd = String(today.getDate()).padStart(2, '0');
         const mm = String(today.getMonth() + 1).padStart(2, '0');
         const yyyy = today.getFullYear();
         const dateString = `${dd}.${mm}.${yyyy}`;
 
-        const fact = funFacts.find(f => f.date === dateString);
-
-        if (!fact) {
-            console.log(`No fun fact assigned for today (${dateString}). Skipping.`);
-            return;
-        }
-
-        const channel = await client.channels.fetch(config.DISCORD_TARGET_FUN_FACTS_CHANNEL_ID);
-        if (!channel || !((channel instanceof TextChannel) || (channel instanceof NewsChannel))) {
-            console.error("Fun facts: Target channel not found or is not a text channel.");
-            return;
-        }
-
-        const footer = fact.dataDate ? `\n\n*[Dane na ${fact.dataDate}]*` : "";
         await channel.send({
-            content: `**Ciekawostka ${dateString}**\n${fact.content}${footer}`
+            content: `**Ciekawostka ${dateString}**\n${trivia.content}`
         });
 
-        console.log(`✅ Sent fun fact for ${dateString}`);
-    } catch (error) {
-        console.error("❌ Error sending fun fact:", error);
+        console.log(`✅ [FunFacts] Wysłano ciekawostkę #${trivia.id} na Discord.`);
+
+        // 4. Oznacz ciekawostkę jako opublikowaną w bazie KKOL
+        try {
+            const patchRes = await fetch(`${config.WEB_API_URL}/api/admin/trivia`, {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    "x-trivia-api-key": config.WEB_API_KEY,
+                    "x-web-api-key": config.WEB_API_KEY,
+                    "Authorization": `Bearer ${config.WEB_API_KEY}`
+                },
+                body: JSON.stringify({
+                    id: trivia.id,
+                    is_used: true
+                })
+            });
+
+            if (!patchRes.ok) {
+                const patchErr = await patchRes.text().catch(() => "");
+                console.warn(`⚠️ [FunFacts] Ciekawostka #${trivia.id} wysłana na Discord, ale nie udało się zaktualizować statusu w API KKOL [${patchRes.status}]: ${patchErr}`);
+            } else {
+                console.log(`✅ [FunFacts] Ciekawostka #${trivia.id} pomyślnie oznaczona jako opublikowana.`);
+            }
+        } catch (patchErr) {
+            console.error(`⚠️ [FunFacts] Błąd sieci podczas aktualizacji statusu ciekawostki #${trivia.id}:`, patchErr);
+        }
+
+        return {
+            success: true,
+            message: `Pomyślnie opublikowano ciekawostkę #${trivia.id}.`,
+            triviaId: trivia.id
+        };
+    } catch (error: any) {
+        const msg = `Nieoczekiwany błąd podczas publikowania ciekawostki: ${error?.message || error}`;
+        console.error(`❌ [FunFacts] ${msg}`);
+        return { success: false, message: msg };
     }
 }

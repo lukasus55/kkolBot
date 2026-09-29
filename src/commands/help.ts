@@ -21,6 +21,10 @@ export async function execute(interaction: CommandInteraction) {
             {
                 name: "/forcevote",
                 value: "[ADMIN ONLY] Wymusza stworzenie ankiety dla nadchodzącego wydarzenia"
+            },
+            {
+                name: "/forcefact",
+                value: "[ADMIN ONLY] Wymusza publikację kolejnej ciekawostki z panelu administratora"
             }
         )
 

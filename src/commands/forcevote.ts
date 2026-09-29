@@ -1,4 +1,4 @@
-import { CommandInteraction, SlashCommandBuilder } from "discord.js";
+import { CommandInteraction, SlashCommandBuilder, MessageFlags } from "discord.js";
 import { loadData } from "../helpers";
 import { sentEventMessages, sendEventPoll } from "../event-checker";
 
@@ -7,7 +7,12 @@ export const data = new SlashCommandBuilder()
     .setDescription("Wymusza głosowanie na nadchodzące wydarzenia.");
 
 export async function execute(interaction: CommandInteraction) {
-    await interaction.deferReply({ ephemeral: true });
+    try {
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    } catch (err) {
+        console.error("❌ Failed to defer reply in /forcevote:", err);
+        return;
+    }
 
     try {
         const userId = interaction.user.id;
